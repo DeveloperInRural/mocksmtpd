@@ -1,0 +1,7 @@
+<tr>
+<td><%= mail[:date] %></td>
+<td><a href="<%=h mail[:filePath] %>"><%=h mail[:subject] %></a></td>
+<td><%=mail[:sender] %></td>
+<td><%=mail[:recipientString] %></td>
+<td align="center"><input type="button" value="delete" onclick="location.href='index.rb?delete_file=<%=h mail[:fileBase] %>'"></td>
+</tr>
