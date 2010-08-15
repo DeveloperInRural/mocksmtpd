@@ -7,9 +7,9 @@ require 'erb'
 require 'nkf'
 require "time"
 require "cgi"
+require 'yaml'
 
 TEMPLATE_DIR = Pathname.new(File.dirname(__FILE__)) + "templates"
-INBOX_DIR = Pathname.new(File.dirname(__FILE__)) + "inbox"
 
 include ERB::Util
 
@@ -26,6 +26,32 @@ def template(name)
   return ERB.new(src, nil, "%-")
 end
 
+def load_conf
+  @conf_file = Pathname.new(@conf_file || "./mocksmtpd.conf")
+  unless @conf_file.exist? && @conf_file.readable?
+    opterror "Can't load config file: #{@conf_file}"
+    exit 1
+  end
+  @conf_file = @conf_file.realpath
+  
+  @conf = {}
+  YAML.load_file(@conf_file).each do |k,v|
+    @conf[k.intern] = v
+  end
+  
+  @inbox = resolve_conf_path(@conf[:InboxDir])
+end
+
+def resolve_conf_path(path)
+  result = nil
+  if path[0] == ?/
+    result = Pathname.new(path)
+  else
+    result = @conf_file.parent + path
+  end
+  return result.cleanpath
+end
+
 # 削除するファイルを取得
 qs = CGI.new
 deleteFile = qs["delete_file"]
@@ -40,10 +66,11 @@ htmlsrc = @templates[:index].result(binding)
 add = "";
 
 # index.html以外のすべてのHTMLを取得
-Dir::glob("#{INBOX_DIR}/*.html").sort.each{|f|
+load_conf
+Dir::glob("#{@inbox}/*.html").sort.each{|f|
   if(File.basename(f) != "index.html")
-  print File.basename(f)
-  print deleteFile
+    print File.basename(f)
+    print deleteFile
     if(File.basename(f) == deleteFile)
       # 削除が指定されていた場合は削除
       File.delete(f)
